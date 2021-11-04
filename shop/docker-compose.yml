@@ -1,0 +1,58 @@
+version: '3'
+services:
+  shop-nginx:
+    build:
+      context: ./shop/docker/development
+      dockerfile: nginx.docker
+    volumes:
+      - ./shop:/app
+    depends_on:
+      - shop-php-fpm
+    ports:
+      - "8088:80"
+  shop-php-fpm:
+    build:
+      context: ./shop/docker/development
+      dockerfile: php-fpm.docker
+    volumes:
+      - ./shop:/app
+    depends_on:
+      - shop-mysql
+      - shop-redis
+  shop-php-cli:
+    build:
+      context: ./shop/docker/development
+      dockerfile: php-cli.docker
+    volumes:
+      - ./shop:/app
+      - composer:/root/.composer/cache
+    depends_on:
+      - shop-mysql
+      - shop-redis
+  shop-mysql:
+    image: mysql
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+      MYSQL_DATABASE: ${MYSQL_DATABASE}
+      MYSQL_USER: ${MYSQL_USER}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD}
+    command: [ "--default-authentication-plugin=mysql_native_password" ]
+    ports:
+      - "3306:3306"
+    volumes:
+      - shop-mysql:/var/lib/mysql
+  shop-redis:
+    image: redis:5.0-alpine
+    volumes:
+      - shop-redis:/data
+    command:
+      - 'redis-server'
+      - '--databases 2'
+      - '--save 900 1'
+      - '--save 300 10'
+      - '--save 60 10000'
+      - '--requirepass secret'
+volumes:
+  shop-mysql:
+  shop-redis:
+  composer:
